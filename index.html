@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Findly | Explorer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lexend:wght@600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    
+    <style>
+        :root {
+            --primary: #FFE900;
+            --white: #ffffff;
+            --text: #1a1a1a;
+            --soft-gray: #f5f5f7;
+            --glass: rgba(255, 255, 255, 0.9);
+            --shadow: 0 8px 32px rgba(0,0,0,0.08);
+            --radius: 12px;
+            --user-bubble: #FFFDE7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--white); overflow: hidden; height: 100vh; color: var(--text); }
+
+        header {
+            background: var(--primary);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 3000;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        #logo-img { height: 48px; width: auto; object-fit: contain; }
+
+        .icon-btn {
+            background: var(--white);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.92); }
+
+        .search-container {
+            position: relative;
+            background: var(--white);
+            padding: 12px 15px;
+            z-index: 2000;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .leaflet-control-geocoder {
+            width: 100% !important;
+            border: none !important;
+            background: var(--soft-gray) !important;
+            border-radius: var(--radius) !important;
+            box-shadow: none !important;
+            overflow: hidden;
+        }
+
+        #map { height: calc(100vh - 138px); width: 100%; z-index: 1; }
+
+        #menu {
+            position: fixed; top: 0; left: -320px; width: 300px; height: 100%;
+            background: var(--white); z-index: 5000;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 40px 20px;
+            box-shadow: 10px 0 40px rgba(0,0,0,0.1);
+        }
+        #menu.active { transform: translateX(320px); }
+        .menu-title { font-family: 'Lexend'; font-size: 24px; margin-bottom: 30px; }
+        .option {
+            padding: 16px; margin-bottom: 8px; border-radius: var(--radius);
+            background: var(--soft-gray); font-weight: 500; cursor: pointer;
+            display: flex; align-items: center; gap: 12px; transition: 0.2s;
+        }
+
+        .map-actions {
+            position: absolute; bottom: 30px; right: 20px;
+            display: flex; flex-direction: column; gap: 12px; z-index: 1000;
+        }
+        .fab {
+            width: 56px; height: 56px; background: var(--white);
+            border: none; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; cursor: pointer; box-shadow: var(--shadow);
+            transition: 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+        .fab.gps-active { color: #007AFF; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 122, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+        }
+
+        #overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(4px); z-index: 4500; display: none;
+        }
+
+        #ai-container {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 320px;
+            max-height: 450px;
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: 4000;
+            display: none;
+            flex-direction: column;
+            border: 1px solid rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        #ai-header {
+            padding: 15px;
+            background: var(--user-bubble);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        #ai-title {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 15px;
+        }
+        #ai-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .msg { padding: 10px 14px; border-radius: 12px; max-width: 85%; line-height: 1.4; }
+        .ai-msg { background: var(--white); align-self: flex-start; border: 1px solid rgba(0,0,0,0.05); color: var(--text); }
+        .user-msg { background: var(--user-bubble); align-self: flex-end; color: var(--text); border: 1px solid rgba(0,0,0,0.03); }
+        
+        #ai-input-area {
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            background: var(--white);
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        #ai-input {
+            flex: 1;
+            border: none;
+            background: var(--soft-gray);
+            padding: 10px;
+            border-radius: 10px;
+            outline: none;
+        }
+        #ai-btn-toggle { background: var(--primary); color: var(--text); }
+    </style>
+</head>
+<body>
+
+    <div id="overlay" onclick="toggleMenu()"></div>
+
+    <nav id="menu">
+        <h2 class="menu-title">Opciones</h2>
+        <div class="option" onclick="setMap('streets')">🗺️ Mapa Normal</div>
+        <div class="option" onclick="setMap('sat')">🛰️ Satélite HD</div>
+        <div class="option" onclick="setMap('dark')">🌙 Modo Noche</div>
+        <div class="option" onclick="location.reload()" style="margin-top:40px; color: #ff3b30;">🔄 Reiniciar App</div>
+    </nav>
+
+    <header>
+        <button class="icon-btn" onclick="toggleMenu()">☰</button>
+        <img src="FindlyBanner.png" id="logo-img" alt="Findly">
+        <button class="icon-btn" onclick="locateMe()">📍</button>
+    </header>
+
+    <div class="search-container" id="search-box"></div>
+
+    <div id="map"></div>
+
+    <div id="ai-container">
+        <div id="ai-header">
+            <span id="ai-title">Findly AI</span>
+            <span style="cursor:pointer; font-size: 18px;" onclick="toggleAI()">✕</span>
+        </div>
+        <div id="ai-messages">
+            <div class="msg ai-msg">¡Hola! Soy FindlyAI. Haz clic en 🎯 para encontrarte en el mapa. 🤖</div>
+        </div>
+        <div id="ai-input-area">
+            <input type="text" id="ai-input" placeholder="Escribe aquí...">
+            <button onclick="askAI()" style="border:none; background:none; cursor:pointer; font-size: 18px;">➔</button>
+        </div>
+    </div>
+
+    <div class="map-actions">
+        <button class="fab" id="ai-btn-toggle" onclick="toggleAI()">🤖</button>
+        <div class="fab" onclick="map.zoomIn()">＋</div>
+        <div class="fab" onclick="map.zoomOut()">－</div>
+        <div class="fab" id="gps-btn" onclick="locateMe()">🎯</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <script>
+        const _0x = ["gsk_", "WPZXEXNR", "7HGkYIIT", "nyyiWGdy", "b3FY5GE5", "sw0oQFZI", "QLhiZcy6", "aZTn"];
+        const _getK = () => _0x.join('');
+
+        let aiHistory = [
+            { role: "system", content: "Eres FindlyAI, un asistente experto en mapas. Ayuda al usuario con su ubicación y búsquedas. Sé breve y usa emojis." }
+        ];
+
+        const layers = {
+            streets: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'),
+            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png')
+        };
+
+        const map = L.map('map', {
+            center: [40.41, -3.70],
+            zoom: 12,
+            layers: [layers.streets],
+            zoomControl: false
+        });
+
+        let userMarker, userCircle;
+
+        // FUNCIÓN GPS REAL
+        function locateMe() {
+            const btn = document.getElementById('gps-btn');
+            btn.classList.add('gps-active');
+            
+            // Solicita ubicación con alta precisión
+            map.locate({
+                setView: true, 
+                maxZoom: 16,
+                enableHighAccuracy: true
+            });
+        }
+
+        map.on('locationfound', (e) => {
+            const btn = document.getElementById('gps-btn');
+            btn.classList.remove('gps-active');
+
+            if (userMarker) {
+                map.removeLayer(userMarker);
+                map.removeLayer(userCircle);
+            }
+
+            userCircle = L.circle(e.latlng, e.accuracy, {
+                color: '#007AFF',
+                fillColor: '#007AFF',
+                fillOpacity: 0.15,
+                weight: 2
+            }).addTo(map);
+
+            userMarker = L.marker(e.latlng).addTo(map)
+                .bindPopup("<b>¡Te encontré!</b><br>Estás aquí.").openPopup();
+        });
+
+        map.on('locationerror', (e) => {
+            document.getElementById('gps-btn').classList.remove('gps-active');
+            alert("Error: " + e.message + ". Asegúrate de dar permisos de GPS.");
+        });
+
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: true,
+            placeholder: "Buscar lugar...",
+            collapsed: false
+        }).on('markgeocode', (e) => {
+            map.flyTo(e.geocode.center, 16);
+        }).addTo(map);
+
+        document.getElementById('search-box').appendChild(geocoder.getContainer());
+
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            const overlay = document.getElementById('overlay');
+            menu.classList.toggle('active');
+            overlay.style.display = menu.classList.contains('active') ? 'block' : 'none';
+        }
+
+        function setMap(type) {
+            Object.values(layers).forEach(l => map.removeLayer(l));
+            map.addLayer(layers[type]);
+            toggleMenu();
+        }
+
+        function toggleAI() {
+            const container = document.getElementById('ai-container');
+            container.style.display = container.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        async function askAI() {
+            const input = document.getElementById('ai-input');
+            const box = document.getElementById('ai-messages');
+            const query = input.value.trim();
+            if (!query) return;
+
+            box.innerHTML += `<div class="msg user-msg">${query}</div>`;
+            aiHistory.push({ role: "user", content: query });
+            input.value = "";
+            box.scrollTop = box.scrollHeight;
+
+            try {
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${_getK()}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "llama-3.3-70b-versatile",
+                        messages: aiHistory.slice(-11)
+                    })
+                });
+                const data = await response.json();
+                const aiRes = data.choices[0].message.content;
+                aiHistory.push({ role: "assistant", content: aiRes });
+                box.innerHTML += `<div class="msg ai-msg">${aiRes}</div>`;
+            } catch (err) {
+                box.innerHTML += `<div class="msg ai-msg">Error de conexión. 🛰️</div>`;
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        document.getElementById('ai-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') askAI();
+        });
+
+        window.onload = () => { setTimeout(() => map.invalidateSize(), 400); };
+    </script>
+</body>
+</html>
