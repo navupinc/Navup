@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Findly | Explorer</title>
+    <title>Navup | Explorer</title>
+    
+    <link rel="icon" type="image/png" href="NavupLogo.png">
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lexend:wght@600;700&display=swap" rel="stylesheet">
     
@@ -179,16 +181,16 @@
     <div id="overlay" onclick="toggleMenu()"></div>
 
     <nav id="menu">
-        <h2 class="menu-title">Opciones</h2>
-        <div class="option" onclick="setMap('streets')">🗺️ Mapa Normal</div>
-        <div class="option" onclick="setMap('sat')">🛰️ Satélite HD</div>
-        <div class="option" onclick="setMap('dark')">🌙 Modo Noche</div>
-        <div class="option" onclick="location.reload()" style="margin-top:40px; color: #ff3b30;">🔄 Reiniciar App</div>
+        <h2 class="menu-title">Options</h2>
+        <div class="option" onclick="setMap('streets')">🗺️ Default Map</div>
+        <div class="option" onclick="setMap('sat')">🛰️ Satellite HD</div>
+        <div class="option" onclick="setMap('dark')">🌙 Night Mode</div>
+        <div class="option" onclick="location.reload()" style="margin-top:40px; color: #ff3b30;">🔄 Restart App</div>
     </nav>
 
     <header>
         <button class="icon-btn" onclick="toggleMenu()">☰</button>
-        <img src="FindlyBanner.png" id="logo-img" alt="Findly">
+        <img src="NavupBanner.png" id="logo-img" alt="Navup">
         <button class="icon-btn" onclick="locateMe()">📍</button>
     </header>
 
@@ -198,14 +200,14 @@
 
     <div id="ai-container">
         <div id="ai-header">
-            <span id="ai-title">Findly AI</span>
+            <span id="ai-title">Navup AI</span>
             <span style="cursor:pointer; font-size: 18px;" onclick="toggleAI()">✕</span>
         </div>
         <div id="ai-messages">
-            <div class="msg ai-msg">¡Hola! Soy FindlyAI. Haz clic en 🎯 para encontrarte en el mapa. 🤖</div>
+            <div class="msg ai-msg">Hi! I'm NavupAI. Click on 🎯 to find yourself on the map. 🤖</div>
         </div>
         <div id="ai-input-area">
-            <input type="text" id="ai-input" placeholder="Escribe aquí...">
+            <input type="text" id="ai-input" placeholder="Type here...">
             <button onclick="askAI()" style="border:none; background:none; cursor:pointer; font-size: 18px;">➔</button>
         </div>
     </div>
@@ -221,11 +223,12 @@
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
     <script>
+        // API Key segments (Assuming you are handling your own logic for keys)
         const _0x = ["gsk_", "WPZXEXNR", "7HGkYIIT", "nyyiWGdy", "b3FY5GE5", "sw0oQFZI", "QLhiZcy6", "aZTn"];
         const _getK = () => _0x.join('');
 
         let aiHistory = [
-            { role: "system", content: "Eres FindlyAI, un asistente experto en mapas y propiedad de Findly, una app de mapas. Ayuda al usuario con su ubicación y búsquedas. Sé breve y usa emojis." }
+            { role: "system", content: "You are NavupAI, an expert map assistant and property of Navup, a mapping app. Help users with their location and searches. Be brief and use emojis." }
         ];
 
         const layers = {
@@ -243,12 +246,11 @@
 
         let userMarker, userCircle;
 
-        // FUNCIÓN GPS REAL
+        // REAL GPS FUNCTION
         function locateMe() {
             const btn = document.getElementById('gps-btn');
             btn.classList.add('gps-active');
             
-            // Solicita ubicación con alta precisión
             map.locate({
                 setView: true, 
                 maxZoom: 16,
@@ -273,17 +275,17 @@
             }).addTo(map);
 
             userMarker = L.marker(e.latlng).addTo(map)
-                .bindPopup("<b>¡Te encontré!</b><br>Estás aquí.").openPopup();
+                .bindPopup("<b>Found you!</b><br>You are here.").openPopup();
         });
 
         map.on('locationerror', (e) => {
             document.getElementById('gps-btn').classList.remove('gps-active');
-            alert("Error: " + e.message + ". Asegúrate de dar permisos de GPS.");
+            alert("Error: " + e.message + ". Please ensure GPS permissions are granted.");
         });
 
         const geocoder = L.Control.geocoder({
             defaultMarkGeocode: true,
-            placeholder: "Buscar lugar...",
+            placeholder: "Search place...",
             collapsed: false
         }).on('markgeocode', (e) => {
             map.flyTo(e.geocode.center, 16);
@@ -337,7 +339,7 @@
                 aiHistory.push({ role: "assistant", content: aiRes });
                 box.innerHTML += `<div class="msg ai-msg">${aiRes}</div>`;
             } catch (err) {
-                box.innerHTML += `<div class="msg ai-msg">Error de conexión. 🛰️</div>`;
+                box.innerHTML += `<div class="msg ai-msg">Connection error. 🛰️</div>`;
             }
             box.scrollTop = box.scrollHeight;
         }
@@ -350,3 +352,4 @@
     </script>
 </body>
 </html>
+
